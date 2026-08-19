@@ -1,0 +1,420 @@
+@import "tailwindcss";
+
+/* next-themes uses class="dark" on <html> — keep dark: utilities in sync */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Semantic design tokens — white canvas + light blue interactions */
+:root {
+  color-scheme: light;
+  --background: #ffffff;
+  --foreground: #1f1e1b;
+  --muted: #e3e2dd;
+  --muted-foreground: #5c5b56;
+  --surface: #ffffff;
+  --border: #c9c8c2;
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --accent: #eff6ff;
+  --accent-foreground: #2563eb;
+  --destructive: #eb5757;
+  --destructive-foreground: #ffffff;
+  --ring: #93c5fd;
+  --sidebar: #ffffff;
+  --sidebar-hover: #eff6ff;
+  --sidebar-active: #dbeafe;
+  --disabled: #a7a69f;
+  --interactive: #eff6ff;
+  --interactive-foreground: #2563eb;
+  --interactive-selected: #dbeafe;
+  --interactive-ring: #93c5fd;
+  --success: #059669;
+  --success-foreground: #ffffff;
+  --success-muted: #ecfdf5;
+  --success-muted-foreground: #047857;
+  --radius: 0.375rem;
+  --sidebar-width: 280px;
+  --header-height: 3rem;
+  --callout-note: #ecfdf5;
+  --callout-note-border: #a7f3d0;
+  --callout-note-foreground: #064e3b;
+  --callout-warning: #fffbeb;
+  --callout-warning-border: #fde68a;
+  --callout-warning-foreground: #78350f;
+  --callout-error: #fef2f2;
+  --callout-error-border: #fecaca;
+  --callout-error-foreground: #7f1d1d;
+  --overlay: rgb(31 30 27 / 0.4);
+  --canvas-dot: #c9c8c2;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: #0f0f0f;
+  --foreground: #ecece9;
+  --muted: #2a2a2a;
+  --muted-foreground: #a8a7a1;
+  --surface: #171717;
+  --border: #3d3d3d;
+  --primary: #60a5fa;
+  --primary-foreground: #0b1220;
+  --accent: #1a2744;
+  --accent-foreground: #93c5fd;
+  --destructive: #f87171;
+  --destructive-foreground: #1a0a0a;
+  --ring: #60a5fa;
+  --sidebar: #0f0f0f;
+  --sidebar-hover: #1a2744;
+  --sidebar-active: #243b66;
+  --disabled: #6f6e68;
+  /* Soft blue washes — mirror light hover/selected hierarchy */
+  --interactive: #1a2744;
+  --interactive-foreground: #93c5fd;
+  --interactive-selected: #243b66;
+  --interactive-ring: #60a5fa;
+  --success: #34d399;
+  --success-foreground: #052e1f;
+  --success-muted: rgb(16 185 129 / 0.14);
+  --success-muted-foreground: #6ee7b7;
+  --callout-note: rgb(6 78 59 / 0.35);
+  --callout-note-border: #065f46;
+  --callout-note-foreground: #d1fae5;
+  --callout-warning: rgb(120 53 15 / 0.35);
+  --callout-warning-border: #92400e;
+  --callout-warning-foreground: #fde68a;
+  --callout-error: rgb(127 29 29 / 0.35);
+  --callout-error-border: #991b1b;
+  --callout-error-foreground: #fecaca;
+  --overlay: rgb(0 0 0 / 0.55);
+  --canvas-dot: #3d3d3d;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-ring: var(--ring);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-hover: var(--sidebar-hover);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-disabled: var(--disabled);
+  --color-interactive: var(--interactive);
+  --color-interactive-foreground: var(--interactive-foreground);
+  --color-interactive-selected: var(--interactive-selected);
+  --color-interactive-ring: var(--interactive-ring);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-muted: var(--success-muted);
+  --color-success-muted-foreground: var(--success-muted-foreground);
+  --color-callout-note: var(--callout-note);
+  --color-callout-note-border: var(--callout-note-border);
+  --color-callout-note-foreground: var(--callout-note-foreground);
+  --color-callout-warning: var(--callout-warning);
+  --color-callout-warning-border: var(--callout-warning-border);
+  --color-callout-warning-foreground: var(--callout-warning-foreground);
+  --color-callout-error: var(--callout-error);
+  --color-callout-error-border: var(--callout-error-border);
+  --color-callout-error-foreground: var(--callout-error-foreground);
+  --color-overlay: var(--overlay);
+  --color-canvas-dot: var(--canvas-dot);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --font-sans: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-background font-sans text-sm leading-relaxed text-foreground antialiased;
+    text-align: start;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--interactive-foreground) 28%, transparent);
+    color: var(--foreground);
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    color-scheme: inherit;
+  }
+
+  .dark input:-webkit-autofill,
+  .dark textarea:-webkit-autofill,
+  .dark select:-webkit-autofill {
+    -webkit-text-fill-color: var(--foreground);
+    caret-color: var(--foreground);
+    box-shadow: 0 0 0 1000px var(--surface) inset;
+    transition: background-color 99999s ease-out 0s;
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4px var(--interactive-ring);
+  }
+
+  .milkdown-host :focus-visible,
+  .milkdown-host .ProseMirror:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+  }
+
+  :disabled,
+  [aria-disabled="true"] {
+    color: var(--disabled);
+  }
+
+  /* Keep emails, URLs, numbers, and code readable in RTL */
+  .ltr-isolate {
+    direction: ltr;
+    unicode-bidi: isolate;
+    text-align: left;
+  }
+}
+
+@layer utilities {
+  .rtl-flip {
+    @apply rtl:rotate-180;
+  }
+
+  .interactive-hover {
+    @apply transition-colors duration-150 hover:bg-interactive hover:text-interactive-foreground;
+  }
+
+  .interactive-selected {
+    @apply bg-interactive-selected text-interactive-foreground;
+  }
+}
+
+/* Milkdown / Crepe — calm Notion-like document canvas */
+.milkdown-host {
+  min-height: calc(100dvh - var(--header-height) - 3.25rem);
+}
+
+.milkdown-host .milkdown {
+  --crepe-color-background: transparent;
+  --crepe-color-on-background: var(--foreground);
+  --crepe-color-surface: var(--surface);
+  --crepe-color-surface-low: var(--muted);
+  --crepe-color-on-surface: var(--foreground);
+  --crepe-color-on-surface-variant: var(--muted-foreground);
+  --crepe-color-outline: var(--foreground);
+  --crepe-color-primary: var(--foreground);
+  --crepe-color-secondary: var(--interactive);
+  --crepe-color-on-secondary: var(--interactive-foreground);
+  --crepe-color-inverse: var(--foreground);
+  --crepe-color-on-inverse: var(--background);
+  --crepe-color-inline-code: var(--muted);
+  --crepe-color-hover: var(--interactive);
+  --crepe-color-selected: var(--interactive-selected);
+  --crepe-font-default: var(--font-vazirmatn), ui-sans-serif, system-ui, sans-serif;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+html:not(.dark) .milkdown-host .milkdown {
+  --crepe-color-outline: #111111;
+  --crepe-color-primary: #111111;
+  --crepe-color-on-surface: #1c1c1c;
+  --crepe-color-on-surface-variant: #4d4d4d;
+}
+
+.dark .milkdown-host .milkdown {
+  --crepe-color-outline: #ecece9;
+  --crepe-color-primary: #ecece9;
+  --crepe-color-surface-low: var(--muted);
+  --crepe-color-on-surface: #ffffff;
+  --crepe-color-on-surface-variant: #e5e5e5;
+}
+
+.dark .milkdown-host .milkdown-slash-menu {
+  color: #ffffff;
+}
+
+.dark .milkdown-host .milkdown-slash-menu .menu-groups .menu-group h6,
+.dark .milkdown-host .milkdown-slash-menu .menu-groups .menu-group li > span {
+  color: #ffffff;
+}
+
+.dark .milkdown-host .milkdown-slash-menu .menu-groups .menu-group li svg {
+  color: #ffffff;
+  fill: #ffffff;
+}
+
+html:not(.dark) .milkdown-host .milkdown-toolbar .toolbar-item svg,
+html:not(.dark) .milkdown-host .milkdown-toolbar .toolbar-item.active svg {
+  color: #111111 !important;
+  fill: #111111 !important;
+}
+
+.dark .milkdown-host .milkdown-toolbar .toolbar-item svg {
+  color: var(--foreground) !important;
+  fill: var(--foreground) !important;
+}
+
+.milkdown-host .milkdown-toolbar .toolbar-item {
+  transition:
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+.milkdown-host .milkdown-toolbar .toolbar-item:hover {
+  background: var(--interactive) !important;
+}
+
+.milkdown-host .milkdown-toolbar .toolbar-item:hover svg {
+  color: var(--interactive-foreground) !important;
+  fill: var(--interactive-foreground) !important;
+}
+
+.milkdown-host .milkdown-toolbar .toolbar-item.active {
+  background: var(--interactive-selected) !important;
+}
+
+.milkdown-host .milkdown-toolbar .toolbar-item.active svg {
+  color: var(--interactive-foreground) !important;
+  fill: var(--interactive-foreground) !important;
+}
+
+.milkdown-host .ProseMirror {
+  min-height: calc(100dvh - var(--header-height) - 6rem);
+  padding: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  direction: rtl;
+  text-align: start;
+  caret-color: var(--foreground);
+  unicode-bidi: plaintext;
+}
+
+.milkdown-host .ProseMirror-focused,
+.milkdown-host .ProseMirror:focus,
+.milkdown-host .ProseMirror:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+.milkdown-host .ProseMirror-selectednode,
+.milkdown-host .ProseMirror .selectedCell,
+.milkdown-host .ProseMirror .selectedCell::after {
+  outline: none !important;
+  background: transparent !important;
+}
+
+.milkdown-host .milkdown-table-block th:has(.ProseMirror-selectednode),
+.milkdown-host .milkdown-table-block td:has(.ProseMirror-selectednode),
+.milkdown-host .milkdown-table-block th .ProseMirror-selectednode,
+.milkdown-host .milkdown-table-block td .ProseMirror-selectednode {
+  outline: 1px solid var(--border) !important;
+}
+
+.milkdown-host .ProseMirror ::selection {
+  background: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.milkdown-host .ProseMirror pre,
+.milkdown-host .ProseMirror code {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: left;
+}
+
+.milkdown-host .ProseMirror table {
+  direction: rtl;
+}
+
+.process-canvas.react-flow,
+.process-canvas .react-flow__renderer,
+.process-canvas .react-flow__pane {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.process-canvas .react-flow__node.selected,
+.process-canvas .react-flow__node:focus,
+.process-canvas .react-flow__node:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.process-canvas .react-flow__controls,
+.process-canvas .react-flow__minimap {
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  overflow: hidden;
+  box-shadow: none;
+}
+
+.process-canvas .react-flow__controls-button {
+  background: var(--surface);
+  border-bottom-color: var(--border);
+  fill: var(--foreground);
+  color: var(--foreground);
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    fill 150ms ease;
+}
+
+.process-canvas .react-flow__controls-button:hover {
+  background: var(--interactive);
+  color: var(--interactive-foreground);
+  fill: var(--interactive-foreground);
+}
+
+.process-canvas .react-flow__controls-button svg {
+  fill: currentColor;
+}
+
+.process-canvas .react-flow__minimap-mask {
+  fill: color-mix(in srgb, var(--foreground) 12%, transparent);
+}
+
+.process-canvas .react-flow__edge-path {
+  stroke: var(--border);
+}
+
+.process-canvas .react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--interactive-foreground);
+}
+
+.process-canvas .react-flow__connection-line {
+  stroke: var(--interactive-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
