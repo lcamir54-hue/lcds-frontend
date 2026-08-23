@@ -145,7 +145,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   },
 
   async setActiveDocument(id) {
-    const { activeId, isDirty, saveActive, items } = get();
+    const { activeId, items } = get();
     if (activeId === id) return;
 
     const meta = findItem(items, id);
@@ -160,13 +160,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         mobileNav: "none",
       }));
       return;
-    }
-
-    if (isDirty && activeId) {
-      const active = findItem(get().items, activeId);
-      if (active?.kind === "page") {
-        await saveActive();
-      }
     }
 
     if (meta.kind === "process") {

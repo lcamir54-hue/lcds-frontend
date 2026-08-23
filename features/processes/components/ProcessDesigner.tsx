@@ -12,6 +12,7 @@ import {
   MarkerType,
   MiniMap,
   type Node,
+  type NodeChange,
   type OnSelectionChangeParams,
   ReactFlow,
   ReactFlowProvider,
@@ -44,6 +45,55 @@ import type {
 
 const nodeTypes = { process: ProcessFlowNode };
 const edgeTypes = { process: ProcessEdge };
+
+function mergeById<T extends { id: string }>(current: T[], incoming: T[]): T[] {
+  const incomingById = new Map(incoming.map((item) => [item.id, item]));
+  const seen = new Set<string>();
+  const merged: T[] = [];
+
+  for (const item of current) {
+    const next = incomingById.get(item.id);
+    if (next) {
+      merged.push(next);
+      seen.add(item.id);
+    } else {
+      merged.push(item);
+    }
+  }
+
+  for (const item of incoming) {
+    if (seen.has(item.id)) continue;
+    merged.push(item);
+  }
+
+  return merged;
+}
+
+function toProcessNodes(nodes: Node[]): ProcessDocument["nodes"] {
+  return nodes.map((node) => ({
+    id: node.id,
+    type: (node.type as ProcessDocument["nodes"][number]["type"]) ?? "process",
+    position: node.position,
+    width: node.width ?? undefined,
+    height: node.height ?? undefined,
+    data: node.data as ProcessDocument["nodes"][number]["data"],
+  }));
+}
+
+function toProcessEdges(edges: Edge[]): ProcessDocument["edges"] {
+  return edges.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    type: (edge.type as ProcessDocument["edges"][number]["type"]) ?? "smoothstep",
+    label: typeof edge.label === "string" ? edge.label : "",
+    animated: Boolean(edge.animated),
+    style: edge.style as { stroke?: string } | undefined,
+    data: edge.data as ProcessDocument["edges"][number]["data"],
+  }));
+}
 
 type ProcessDesignerProps = {
   processId: string;
@@ -80,11 +130,17 @@ function ProcessDesignerInner({
   const setSelection = useProcessStore((s) => s.setSelection);
   const undo = useProcessStore((s) => s.undo);
   const redo = useProcessStore((s) => s.redo);
-  const isDirty = useProcessStore((s) => s.isDirty);
   const reset = useProcessStore((s) => s.reset);
 
-  const { fitView, zoomIn, zoomOut, setCenter, screenToFlowPosition, getNodes } =
-    useReactFlow();
+  const {
+    fitView,
+    zoomIn,
+    zoomOut,
+    setCenter,
+    screenToFlowPosition,
+    getNodes,
+    getEdges,
+  } = useReactFlow();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [propsOpen, setPropsOpen] = React.useState(false);
@@ -141,44 +197,48 @@ function ProcessDesignerInner({
     );
   }, [process, setEdges, setNodes, viewMode]);
 
-  React.useEffect(() => {
-    if (!isDirty) return;
-    const timer = window.setTimeout(() => {
-      void save();
-    }, 800);
-    return () => window.clearTimeout(timer);
-  }, [isDirty, process, save]);
-
   const syncFromFlow = React.useCallback(
-    (nextNodes: Node[], nextEdges: Edge[], recordHistory = true) => {
-      if (!process) return;
+    (
+      nextNodes: Node[],
+      nextEdges: Edge[],
+      options?: { recordHistory?: boolean; replace?: boolean },
+    ) => {
+      const current = useProcessStore.getState().process;
+      if (!current) return;
+      const recordHistory = options?.recordHistory ?? true;
+      const mappedNodes = toProcessNodes(nextNodes);
+      const mappedEdges = toProcessEdges(nextEdges);
       const next: ProcessDocument = {
-        ...process,
-        nodes: nextNodes.map((node) => ({
-          id: node.id,
-          type: (node.type as ProcessDocument["nodes"][number]["type"]) ?? "process",
-          position: node.position,
-          width: node.width ?? undefined,
-          height: node.height ?? undefined,
-          data: node.data as ProcessDocument["nodes"][number]["data"],
-        })),
-        edges: nextEdges.map((edge) => ({
-          id: edge.id,
-          source: edge.source,
-          target: edge.target,
-          sourceHandle: edge.sourceHandle,
-          targetHandle: edge.targetHandle,
-          type: (edge.type as ProcessDocument["edges"][number]["type"]) ?? "smoothstep",
-          label: typeof edge.label === "string" ? edge.label : "",
-          animated: Boolean(edge.animated),
-          style: edge.style as { stroke?: string } | undefined,
-          data: edge.data as ProcessDocument["edges"][number]["data"],
-        })),
+        ...current,
+        nodes: options?.replace
+          ? mappedNodes
+          : mergeById(current.nodes, mappedNodes),
+        edges: options?.replace
+          ? mappedEdges
+          : mergeById(current.edges, mappedEdges),
       };
       skipStoreSyncRef.current = true;
       setProcess(next, { recordHistory });
     },
-    [process, setProcess],
+    [setProcess],
+  );
+
+  const syncCurrentFlow = React.useCallback(
+    (options?: { recordHistory?: boolean; replace?: boolean }) => {
+      syncFromFlow(getNodes(), getEdges(), options);
+    },
+    [getEdges, getNodes, syncFromFlow],
+  );
+
+  const handleNodesChange = React.useCallback(
+    (changes: NodeChange[]) => {
+      if (isDraggingRef.current) {
+        onNodesChange(changes.filter((change) => change.type !== "remove"));
+        return;
+      }
+      onNodesChange(changes);
+    },
+    [onNodesChange],
   );
 
   const addObject = React.useCallback(
@@ -193,16 +253,16 @@ function ProcessDesignerInner({
         });
       const created = createProcessNode(objectType, flowPos, item?.label);
       const nextNodes = [
-        ...nodes,
+        ...getNodes(),
         {
           ...created,
           type: "process",
         } as Node,
       ];
       setNodes(nextNodes);
-      syncFromFlow(nextNodes, edges);
+      syncFromFlow(nextNodes, getEdges());
     },
-    [edges, nodes, process, screenToFlowPosition, setNodes, syncFromFlow, viewMode],
+    [getEdges, getNodes, process, screenToFlowPosition, setNodes, syncFromFlow, viewMode],
   );
 
   const onConnect = React.useCallback(
@@ -220,6 +280,8 @@ function ProcessDesignerInner({
       ) {
         return;
       }
+      const currentNodes = getNodes();
+      const currentEdges = getEdges();
       const nextEdges = addEdge(
         {
           ...connection,
@@ -234,12 +296,12 @@ function ProcessDesignerInner({
                   .branches?.[Number(connection.sourceHandle.split("-")[1] ?? 0)]
               : "",
         },
-        edges,
+        currentEdges,
       );
       setEdges(nextEdges);
-      syncFromFlow(nodes, nextEdges);
+      syncFromFlow(currentNodes, nextEdges);
     },
-    [edges, nodes, process, setEdges, syncFromFlow, viewMode],
+    [getEdges, getNodes, process, setEdges, syncFromFlow, viewMode],
   );
 
   const onSelectionChange = React.useCallback(
@@ -288,37 +350,43 @@ function ProcessDesignerInner({
         setEdges((current) => current.map((edge) => ({ ...edge, selected: true })));
       }
       if (meta && event.key.toLowerCase() === "c") {
-        const selected = nodes.filter((node) => node.selected);
+        const currentNodes = getNodes();
+        const currentEdges = getEdges();
+        const selected = currentNodes.filter((node) => node.selected);
         if (selected.length === 0) return;
         const selectedIds = new Set(selected.map((node) => node.id));
         setClipboard({
           nodes: selected,
-          edges: edges.filter(
+          edges: currentEdges.filter(
             (edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target),
           ),
         });
       }
       if (meta && event.key.toLowerCase() === "x") {
         if (!canMutate) return;
-        const selected = nodes.filter((node) => node.selected);
+        const currentNodes = getNodes();
+        const currentEdges = getEdges();
+        const selected = currentNodes.filter((node) => node.selected);
         if (selected.length === 0) return;
         const selectedIds = new Set(selected.map((node) => node.id));
         setClipboard({
           nodes: selected,
-          edges: edges.filter(
+          edges: currentEdges.filter(
             (edge) => selectedIds.has(edge.source) && selectedIds.has(edge.target),
           ),
         });
-        const nextNodes = nodes.filter((node) => !selectedIds.has(node.id));
-        const nextEdges = edges.filter(
+        const nextNodes = currentNodes.filter((node) => !selectedIds.has(node.id));
+        const nextEdges = currentEdges.filter(
           (edge) => !selectedIds.has(edge.source) && !selectedIds.has(edge.target),
         );
         setNodes(nextNodes);
         setEdges(nextEdges);
-        syncFromFlow(nextNodes, nextEdges);
+        syncFromFlow(nextNodes, nextEdges, { replace: true });
       }
       if (meta && event.key.toLowerCase() === "v" && clipboard) {
         if (!canMutate) return;
+        const currentNodes = getNodes();
+        const currentEdges = getEdges();
         const idMap = new Map<string, string>();
         const pastedNodes = clipboard.nodes.map((node) => {
           const id = nanoid(10);
@@ -339,10 +407,10 @@ function ProcessDesignerInner({
           })
           .filter(Boolean) as Edge[];
         const nextNodes = [
-          ...nodes.map((node) => ({ ...node, selected: false })),
+          ...currentNodes.map((node) => ({ ...node, selected: false })),
           ...pastedNodes,
         ];
-        const nextEdges = [...edges, ...pastedEdges];
+        const nextEdges = [...currentEdges, ...pastedEdges];
         setNodes(nextNodes);
         setEdges(nextEdges);
         syncFromFlow(nextNodes, nextEdges);
@@ -350,7 +418,8 @@ function ProcessDesignerInner({
       if (meta && event.key.toLowerCase() === "d") {
         if (!canMutate) return;
         event.preventDefault();
-        const selected = nodes.filter((node) => node.selected);
+        const currentNodes = getNodes();
+        const selected = currentNodes.filter((node) => node.selected);
         if (selected.length === 0) return;
         const duplicated = selected.map((node) => ({
           ...node,
@@ -359,27 +428,11 @@ function ProcessDesignerInner({
           selected: true,
         }));
         const nextNodes = [
-          ...nodes.map((node) => ({ ...node, selected: false })),
+          ...currentNodes.map((node) => ({ ...node, selected: false })),
           ...duplicated,
         ];
         setNodes(nextNodes);
-        syncFromFlow(nextNodes, edges);
-      }
-      if (event.key === "Delete" || event.key === "Backspace") {
-        if (!canMutate) return;
-        const selectedIds = new Set(nodes.filter((n) => n.selected).map((n) => n.id));
-        const selectedEdgeSet = new Set(edges.filter((e) => e.selected).map((e) => e.id));
-        if (selectedIds.size === 0 && selectedEdgeSet.size === 0) return;
-        const nextNodes = nodes.filter((node) => !selectedIds.has(node.id));
-        const nextEdges = edges.filter(
-          (edge) =>
-            !selectedEdgeSet.has(edge.id) &&
-            !selectedIds.has(edge.source) &&
-            !selectedIds.has(edge.target),
-        );
-        setNodes(nextNodes);
-        setEdges(nextEdges);
-        syncFromFlow(nextNodes, nextEdges);
+        syncFromFlow(nextNodes, getEdges());
       }
       if (event.key === "+" || event.key === "=") zoomIn();
       if (event.key === "-") zoomOut();
@@ -397,7 +450,8 @@ function ProcessDesignerInner({
           event.key === "ArrowLeft" ? -delta : event.key === "ArrowRight" ? delta : 0;
         const dy =
           event.key === "ArrowUp" ? -delta : event.key === "ArrowDown" ? delta : 0;
-        const nextNodes = nodes.map((node) =>
+        const currentNodes = getNodes();
+        const nextNodes = currentNodes.map((node) =>
           node.selected
             ? {
                 ...node,
@@ -409,7 +463,7 @@ function ProcessDesignerInner({
             : node,
         );
         setNodes(nextNodes);
-        syncFromFlow(nextNodes, edges);
+        syncFromFlow(nextNodes, getEdges());
       }
     };
 
@@ -417,8 +471,8 @@ function ProcessDesignerInner({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
     clipboard,
-    edges,
-    nodes,
+    getEdges,
+    getNodes,
     redo,
     save,
     setEdges,
@@ -594,49 +648,58 @@ function ProcessDesignerInner({
             edges={edges}
             nodeTypes={nodeTypes}
             edgeTypes={edgeTypes}
-            onNodesChange={onNodesChange}
+            onNodesChange={handleNodesChange}
             onEdgesChange={onEdgesChange}
             onNodeDragStart={() => {
               isDraggingRef.current = true;
             }}
-            onNodeDragStop={(_event, _node, currentNodes) => {
+            onNodeDragStop={() => {
               isDraggingRef.current = false;
               if (viewMode !== "design") return;
-              syncFromFlow(currentNodes, edges);
+              syncCurrentFlow({ recordHistory: true });
             }}
             onEdgesDelete={(deleted) => {
               if (viewMode !== "design") return;
-              const ids = new Set(deleted.map((edge) => edge.id));
-              const nextEdges = edges.filter((edge) => !ids.has(edge.id));
-              setEdges(nextEdges);
-              syncFromFlow(nodes, nextEdges);
+              const deletedIds = new Set(deleted.map((edge) => edge.id));
+              const current = useProcessStore.getState().process;
+              if (!current) return;
+              skipStoreSyncRef.current = true;
+              setProcess({
+                ...current,
+                edges: current.edges.filter((edge) => !deletedIds.has(edge.id)),
+              });
             }}
             onNodesDelete={(deleted) => {
               if (viewMode !== "design") return;
-              const ids = new Set(deleted.map((node) => node.id));
-              const nextNodes = nodes.filter((node) => !ids.has(node.id));
-              const nextEdges = edges.filter(
-                (edge) => !ids.has(edge.source) && !ids.has(edge.target),
-              );
-              setNodes(nextNodes);
-              setEdges(nextEdges);
-              syncFromFlow(nextNodes, nextEdges);
+              const deletedIds = new Set(deleted.map((node) => node.id));
+              const current = useProcessStore.getState().process;
+              if (!current) return;
+              skipStoreSyncRef.current = true;
+              setProcess({
+                ...current,
+                nodes: current.nodes.filter((node) => !deletedIds.has(node.id)),
+                edges: current.edges.filter(
+                  (edge) =>
+                    !deletedIds.has(edge.source) && !deletedIds.has(edge.target),
+                ),
+              });
             }}
             onConnect={onConnect}
             onSelectionChange={onSelectionChange}
             onMoveEnd={(_event, viewport) => {
-              if (!process || readOnly) return;
+              const current = useProcessStore.getState().process;
+              if (!current || readOnly) return;
               skipStoreSyncRef.current = true;
               setProcess(
                 {
-                  ...process,
+                  ...current,
                   viewport: {
                     x: viewport.x,
                     y: viewport.y,
                     zoom: viewport.zoom,
                   },
                 },
-                { recordHistory: false },
+                { recordHistory: false, dirty: false },
               );
             }}
             onInit={(instance) => {

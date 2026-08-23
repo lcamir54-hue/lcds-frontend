@@ -29,7 +29,10 @@ type ProcessStore = {
     id: string,
     options?: { topicId?: string; title?: string; icon?: string; readOnly?: boolean },
   ) => Promise<void>;
-  setProcess: (process: ProcessDocument, options?: { recordHistory?: boolean }) => void;
+  setProcess: (
+    process: ProcessDocument,
+    options?: { recordHistory?: boolean; dirty?: boolean },
+  ) => void;
   setViewMode: (mode: ProcessViewMode) => void;
   setSelection: (nodeIds: string[], edgeIds: string[]) => void;
   undo: () => void;
@@ -81,11 +84,12 @@ export const useProcessStore = create<ProcessStore>((set, get) => ({
 
   setProcess(process, options) {
     const recordHistory = options?.recordHistory ?? true;
+    const markDirty = options?.dirty ?? true;
     const current = get().process;
     set((state) => ({
       process,
-      isDirty: true,
-      saveStatus: "dirty",
+      isDirty: markDirty ? true : state.isDirty,
+      saveStatus: markDirty ? "dirty" : state.saveStatus,
       past:
         recordHistory && current
           ? [...state.past.slice(-49), cloneProcess(current)]

@@ -4,8 +4,8 @@ import { ListTree } from "lucide-react";
 import * as React from "react";
 
 import { PublishStatusControl } from "@/components/shared/publish-status-control";
+import { SaveActionButton } from "@/components/shared/save-action-button";
 import { Button } from "@/components/ui/button";
-import { SaveStatusIndicator } from "@/features/documents/components/save-status";
 import { useAccessPrincipal } from "@/features/documents/hooks/use-access-principal";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
 import { canWriteDocument } from "@/features/documents/lib/access-control";
@@ -15,16 +15,32 @@ import { cn } from "@/lib/utils";
 export function DocumentToolbar() {
   const activeMeta = useWorkspaceStore((s) => s.activeMeta);
   const viewMode = useWorkspaceStore((s) => s.viewMode);
+  const isDirty = useWorkspaceStore((s) => s.isDirty);
+  const isSaving = useWorkspaceStore((s) => s.isSaving);
   const saveStatus = useWorkspaceStore((s) => s.saveStatus);
   const outlineOpen = useWorkspaceStore((s) => s.outlineOpen);
   const setViewMode = useWorkspaceStore((s) => s.setViewMode);
   const setOutlineOpen = useWorkspaceStore((s) => s.setOutlineOpen);
   const updatePublishStatus = useWorkspaceStore((s) => s.updatePublishStatus);
+  const saveActive = useWorkspaceStore((s) => s.saveActive);
   const principal = useAccessPrincipal();
 
   const canWrite = activeMeta
     ? canWriteDocument(activeMeta, principal)
     : false;
+
+  React.useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "s") {
+        return;
+      }
+      if (!canWrite || !isDirty) return;
+      event.preventDefault();
+      void saveActive();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [canWrite, isDirty, saveActive]);
 
   const title = activeMeta?.title ?? "بدون عنوان";
   const icon = activeMeta?.icon ?? "📄";
@@ -37,10 +53,16 @@ export function DocumentToolbar() {
           {icon}
         </span>
         <h1 className="truncate text-sm font-medium">{title}</h1>
-        <SaveStatusIndicator
-          status={saveStatus}
-          className="ms-1 hidden sm:inline"
-        />
+        {canWrite ? (
+          <SaveActionButton
+            dirty={isDirty}
+            saving={isSaving}
+            error={saveStatus === "error"}
+            onSave={() => {
+              void saveActive();
+            }}
+          />
+        ) : null}
       </div>
 
       <div className="flex flex-wrap items-center gap-1">

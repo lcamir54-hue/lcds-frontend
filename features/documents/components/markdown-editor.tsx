@@ -7,6 +7,8 @@ import { Crepe } from "@milkdown/crepe";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import * as React from "react";
 
+import { MarkdownVoiceControl } from "@/features/documents/components/markdown-voice-control";
+import { MarkdownWritingAssist } from "@/features/documents/components/markdown-writing-assist";
 import { getMarkdownBody } from "@/features/documents/lib/frontmatter";
 
 type MilkdownEditorInnerProps = {
@@ -22,7 +24,7 @@ function MilkdownEditorInner({
 }: MilkdownEditorInnerProps) {
   const body = getMarkdownBody(markdown);
 
-  const { loading } = useEditor(
+  const { loading, get } = useEditor(
     (root) => {
       const crepe = new Crepe({
         root,
@@ -81,13 +83,23 @@ function MilkdownEditorInner({
   );
 
   return (
-    <div className="milkdown-host mx-auto w-full max-w-[1200px] px-6 py-8 md:px-12 lg:px-16">
-      {loading ? (
-        <p className="text-sm text-muted-foreground">
-          در حال آماده‌سازی ویرایشگر…
-        </p>
-      ) : null}
-      <Milkdown />
+    <div className="relative flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="milkdown-host mx-auto w-full max-w-[1200px] px-6 py-8 pb-24 md:px-12 lg:px-16">
+          {loading ? (
+            <p className="text-sm text-muted-foreground">
+              در حال آماده‌سازی ویرایشگر…
+            </p>
+          ) : null}
+          <Milkdown />
+        </div>
+      </div>
+      <MarkdownWritingAssist disabled={loading} getEditor={get} />
+      <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
+        <div className="pointer-events-auto">
+          <MarkdownVoiceControl disabled={loading} getEditor={get} />
+        </div>
+      </div>
     </div>
   );
 }

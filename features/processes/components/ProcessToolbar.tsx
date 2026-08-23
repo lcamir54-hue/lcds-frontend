@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 
 import { PublishStatusControl } from "@/components/shared/publish-status-control";
+import { SaveActionButton } from "@/components/shared/save-action-button";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,14 +22,6 @@ import { Input } from "@/components/ui/input";
 import type { PublishStatus } from "@/features/documents/types";
 import { useProcessStore } from "@/features/processes/hooks/use-process-store";
 import { cn } from "@/lib/utils";
-
-const SAVE_LABELS = {
-  idle: "",
-  dirty: "تغییرات ذخیره‌نشده",
-  saving: "در حال ذخیره…",
-  saved: "ذخیره شد",
-  error: "ذخیره انجام نشد",
-} as const;
 
 type ProcessToolbarProps = {
   topicTitle: string;
@@ -68,6 +61,9 @@ export function ProcessToolbar({
   const process = useProcessStore((s) => s.process);
   const viewMode = useProcessStore((s) => s.viewMode);
   const saveStatus = useProcessStore((s) => s.saveStatus);
+  const isDirty = useProcessStore((s) => s.isDirty);
+  const isSaving = useProcessStore((s) => s.isSaving);
+  const save = useProcessStore((s) => s.save);
   const setViewMode = useProcessStore((s) => s.setViewMode);
   const setProcess = useProcessStore((s) => s.setProcess);
   const undo = useProcessStore((s) => s.undo);
@@ -173,17 +169,16 @@ export function ProcessToolbar({
           اعتبارسنجی
         </Button>
 
-        <span
-          className={cn(
-            "ms-1 text-xs text-muted-foreground",
-            saveStatus === "error" && "text-destructive",
-            saveStatus === "dirty" && "text-amber-700",
-          )}
-          role="status"
-          aria-live="polite"
-        >
-          {SAVE_LABELS[saveStatus]}
-        </span>
+        {readOnly ? null : (
+          <SaveActionButton
+            dirty={isDirty}
+            saving={isSaving}
+            error={saveStatus === "error"}
+            onSave={() => {
+              void save();
+            }}
+          />
+        )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

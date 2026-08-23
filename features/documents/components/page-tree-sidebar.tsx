@@ -13,7 +13,6 @@ import {
   Trash2,
   Workflow,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import * as React from "react";
 
 import {
@@ -41,6 +40,7 @@ import {
   type CreateChildKind,
 } from "@/features/documents/components/create-child-dialog";
 import { CreateTopicDialog } from "@/features/documents/components/create-topic-dialog";
+import { useUnsavedNavigation } from "@/features/documents/components/unsaved-navigation-provider";
 import { useAccessPrincipal } from "@/features/documents/hooks/use-access-principal";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
 import {
@@ -99,11 +99,10 @@ function PageTreeItem({
   node: TreeNode;
   depth: number;
 }) {
-  const router = useRouter();
+  const { requestLeave } = useUnsavedNavigation();
   const activeId = useWorkspaceStore((s) => s.activeId);
   const expandedIds = useWorkspaceStore((s) => s.expandedIds);
   const toggleExpanded = useWorkspaceStore((s) => s.toggleExpanded);
-  const setActiveDocument = useWorkspaceStore((s) => s.setActiveDocument);
   const createPage = useWorkspaceStore((s) => s.createPage);
   const renamePage = useWorkspaceStore((s) => s.renamePage);
   const duplicatePage = useWorkspaceStore((s) => s.duplicatePage);
@@ -187,9 +186,8 @@ function PageTreeItem({
               }
               const href = knowledgeItemHref(node);
               if (href) {
-                void setActiveDocument(node.id);
                 setMobileNav("none");
-                router.push(href);
+                requestLeave(href);
               }
             }}
           >
@@ -275,7 +273,7 @@ function PageTreeItem({
                         kind: node.kind,
                         parent: node.parent,
                       });
-                      if (href) router.push(href);
+                      if (href) requestLeave(href);
                     })();
                   }}
                 >
@@ -332,7 +330,7 @@ function PageTreeItem({
             kind,
             parent: node.id,
           });
-          if (href) router.push(href);
+          if (href) requestLeave(href);
         }}
       />
 
@@ -354,7 +352,7 @@ function PageTreeItem({
                 void (async () => {
                   await deletePage(node.id);
                   if (activeId === node.id || containsActive(node, activeId)) {
-                    router.push("/knowledge");
+                    requestLeave("/knowledge");
                   }
                 })();
               }}

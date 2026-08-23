@@ -11,12 +11,9 @@ import { DocumentToolbar } from "@/features/documents/components/document-toolba
 import { MarkdownEditor } from "@/features/documents/components/markdown-editor";
 import { MarkdownRenderer } from "@/features/documents/components/markdown-renderer";
 import { useAccessPrincipal } from "@/features/documents/hooks/use-access-principal";
-import {
-  useAutosave,
-  useUnsavedChangesWarning,
-} from "@/features/documents/hooks/use-autosave";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
 import { canWriteDocument } from "@/features/documents/lib/access-control";
+import { discardUnsavedChanges } from "@/features/documents/lib/unsaved-changes";
 
 const ProcessDesigner = dynamic(
   () =>
@@ -47,9 +44,6 @@ export function PageWorkspace() {
   const setMarkdown = useWorkspaceStore((s) => s.setMarkdown);
   const principal = useAccessPrincipal();
 
-  useAutosave(800);
-  useUnsavedChangesWarning();
-
   React.useEffect(() => {
     if (!hydrated || !pageId) return;
     if (activeId === pageId) return;
@@ -79,15 +73,18 @@ export function PageWorkspace() {
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <DocumentToolbar />
-        <div className="relative min-h-0 flex-1 overflow-y-auto">
+        <div className="relative min-h-0 flex-1 overflow-hidden">
           {showEditor ? (
             <MarkdownEditor
               documentId={pageId}
               markdown={markdown}
               onChange={(value) => setMarkdown(value)}
             />
-          ) : null}
-          {!showEditor ? <MarkdownRenderer markdown={markdown} /> : null}
+          ) : (
+            <div className="h-full overflow-y-auto">
+              <MarkdownRenderer markdown={markdown} />
+            </div>
+          )}
         </div>
       </main>
       {outlineOpen ? (
@@ -168,6 +165,7 @@ export function ProcessWorkspace() {
         void useWorkspaceStore.getState().updatePublishStatus(processId, status);
       }}
       onDeleted={async () => {
+        discardUnsavedChanges();
         await refreshDocuments();
         router.push("/knowledge");
       }}

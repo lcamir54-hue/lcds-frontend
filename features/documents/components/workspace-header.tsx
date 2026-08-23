@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, MessageSquare } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -18,7 +18,7 @@ import {
   getSessionUser,
   logout,
 } from "@/features/auth/lib/auth-session";
-import { useChatStore } from "@/features/chat/hooks/use-chat-store";
+import { useUnsavedNavigation } from "@/features/documents/components/unsaved-navigation-provider";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
 import { APP_NAME, APP_TITLE_FA, type AuthUser } from "@/lib/constants";
 
@@ -46,9 +46,8 @@ function getServerSessionSnapshot(): AuthUser | null {
 
 export function WorkspaceHeader() {
   const router = useRouter();
+  const { requestLeave } = useUnsavedNavigation();
   const setMobileNav = useWorkspaceStore((s) => s.setMobileNav);
-  const chatOpen = useChatStore((s) => s.open);
-  const toggleChat = useChatStore((s) => s.toggle);
   const user = React.useSyncExternalStore(
     subscribeToSession,
     getSessionSnapshot,
@@ -79,16 +78,6 @@ export function WorkspaceHeader() {
       </div>
 
       <div className="flex items-center gap-1">
-        <Button
-          variant={chatOpen ? "secondary" : "ghost"}
-          size="sm"
-          aria-pressed={chatOpen}
-          aria-label="دستیار دانش"
-          onClick={() => toggleChat()}
-        >
-          <MessageSquare className="size-4" aria-hidden />
-          <span className="hidden sm:inline">دستیار</span>
-        </Button>
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -108,14 +97,14 @@ export function WorkspaceHeader() {
               <>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  onClick={() => router.push("/admin/dashboard")}
+                  onClick={() => requestLeave("/admin/dashboard")}
                 >
                   داشبورد
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/admin/groups")}>
+                <DropdownMenuItem onClick={() => requestLeave("/admin/groups")}>
                   مدیریت گروه‌ها
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => router.push("/admin/users")}>
+                <DropdownMenuItem onClick={() => requestLeave("/admin/users")}>
                   مدیریت کاربران
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -123,11 +112,13 @@ export function WorkspaceHeader() {
             ) : null}
             <DropdownMenuItem
               onClick={() => {
-                void (async () => {
-                  await logout();
-                  router.replace("/login");
-                  router.refresh();
-                })();
+                requestLeave(() => {
+                  void (async () => {
+                    await logout();
+                    router.replace("/login");
+                    router.refresh();
+                  })();
+                });
               }}
             >
               خروج

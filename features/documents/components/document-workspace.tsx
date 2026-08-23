@@ -9,11 +9,8 @@ import { DocumentToolbar } from "@/features/documents/components/document-toolba
 import { MarkdownEditor } from "@/features/documents/components/markdown-editor";
 import { MarkdownRenderer } from "@/features/documents/components/markdown-renderer";
 import { PageTreeSidebar } from "@/features/documents/components/page-tree-sidebar";
+import { UnsavedNavigationProvider } from "@/features/documents/components/unsaved-navigation-provider";
 import { WorkspaceHeader } from "@/features/documents/components/workspace-header";
-import {
-  useAutosave,
-  useUnsavedChangesWarning,
-} from "@/features/documents/hooks/use-autosave";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
 
 export function DocumentWorkspace() {
@@ -29,9 +26,6 @@ export function DocumentWorkspace() {
   const setOutlineOpen = useWorkspaceStore((s) => s.setOutlineOpen);
   const setMarkdown = useWorkspaceStore((s) => s.setMarkdown);
 
-  useAutosave(800);
-  useUnsavedChangesWarning();
-
   React.useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
@@ -45,7 +39,8 @@ export function DocumentWorkspace() {
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+    <UnsavedNavigationProvider>
+      <div className="flex h-dvh flex-col overflow-hidden bg-background">
       <WorkspaceHeader />
 
       <div className="relative flex min-h-0 flex-1 overflow-hidden">
@@ -57,17 +52,18 @@ export function DocumentWorkspace() {
           {activeMeta && activeId ? (
             <>
               <DocumentToolbar />
-              <div className="relative min-h-0 flex-1 overflow-y-auto">
+              <div className="relative min-h-0 flex-1 overflow-hidden">
                 {viewMode === "edit" ? (
                   <MarkdownEditor
                     documentId={activeId}
                     markdown={markdown}
                     onChange={(value) => setMarkdown(value)}
                   />
-                ) : null}
-                {viewMode === "read" ? (
-                  <MarkdownRenderer markdown={markdown} />
-                ) : null}
+                ) : (
+                  <div className="h-full overflow-y-auto">
+                    <MarkdownRenderer markdown={markdown} />
+                  </div>
+                )}
               </div>
             </>
           ) : (
@@ -114,6 +110,7 @@ export function DocumentWorkspace() {
           </div>
         ) : null}
       </div>
-    </div>
+      </div>
+    </UnsavedNavigationProvider>
   );
 }
