@@ -1,6 +1,11 @@
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 
+export const RAG_API_BASE_URL =
+  process.env.RAG_API_BASE_URL ?? "http://localhost:7000";
+
+export const RAG_PROXY_PREFIX = "/api/rag";
+
 export const API_PREFIX = "/api/v1";
 
 export function apiUrl(path: string): string {

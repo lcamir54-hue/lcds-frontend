@@ -10,9 +10,11 @@ import {
   PanelRightClose,
   Pencil,
   Plus,
+  Sparkles,
   Trash2,
   Workflow,
 } from "lucide-react";
+import Link from "next/link";
 import * as React from "react";
 
 import {
@@ -52,7 +54,7 @@ import { defaultIconForKind } from "@/features/documents/lib/frontmatter";
 import { knowledgeItemHref } from "@/features/documents/lib/knowledge-routes";
 import type { DocumentKind, DocumentMeta } from "@/features/documents/types";
 import { PUBLISH_STATUS_LABELS } from "@/features/documents/types";
-import { APP_TITLE_FA } from "@/lib/constants";
+import { APP_TITLE_FA, ASSISTANT_PATH } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 type TreeNode = DocumentMeta & { children: TreeNode[] };

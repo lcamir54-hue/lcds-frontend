@@ -18,3 +18,6 @@ export type AuthUser = {
 export const AUTH_COOKIE_NAME = "lcds.session";
 export const AUTH_USER_STORAGE_KEY = "lcds.auth.user";
 export const AUTH_TOKEN_STORAGE_KEY = "lcds.auth.token";
+
+export const ASSISTANT_PATH = "/assistant";
+export const ASSISTANT_STORAGE_KEY = "lcds.assistant.v1";

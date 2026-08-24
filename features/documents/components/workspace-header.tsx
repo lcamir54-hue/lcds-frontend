@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
@@ -20,7 +20,12 @@ import {
 } from "@/features/auth/lib/auth-session";
 import { useUnsavedNavigation } from "@/features/documents/components/unsaved-navigation-provider";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
-import { APP_NAME, APP_TITLE_FA, type AuthUser } from "@/lib/constants";
+import {
+  APP_NAME,
+  APP_TITLE_FA,
+  ASSISTANT_PATH,
+  type AuthUser,
+} from "@/lib/constants";
 
 function userInitial(fullName: string) {
   return fullName.trim().charAt(0) || "ک";
@@ -78,6 +83,14 @@ export function WorkspaceHeader() {
       </div>
 
       <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => requestLeave(ASSISTANT_PATH)}
+        >
+          <Sparkles className="size-4" aria-hidden />
+          <span className="hidden sm:inline">دستیار دانش</span>
+        </Button>
         <ThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
