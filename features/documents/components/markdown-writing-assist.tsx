@@ -21,11 +21,21 @@ import {
 import {
   captureEditorSelection,
   replaceEditorRange,
+  replaceEditorRangeWithMarkdown,
 } from "@/features/documents/lib/editor-insert";
+import {
+  normalizeWritingAssistMarkdown,
+} from "@/features/documents/lib/writing-assist-markdown";
+import {
+  buildWritingAssistRequest,
+  type WritingTaskId,
+} from "@/features/documents/lib/writing-assist-prompts";
+import { streamExternalLlm } from "@/features/documents/lib/writing-assist-stream";
+import { getErrorDetail } from "@/lib/api/errors";
 import { cn } from "@/lib/utils";
 
 type WritingTask = {
-  id: string;
+  id: WritingTaskId;
   label: string;
   icon: React.ElementType;
 };
@@ -102,16 +112,6 @@ function readVisualSelection(): Omit<SelectionChip, "from" | "length"> | null {
   };
 }
 
-function buildTestDraft(task: WritingTask, source: string): string {
-  return `متن آزمایشی — ${task.label}\n\n${source}\n\nاین یک پیش‌نویس نمونه است و جای متن انتخاب‌شده نوشته شد.`;
-}
-
-function wait(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
 export function MarkdownWritingAssist({
   disabled,
   getEditor,
@@ -123,7 +123,9 @@ export function MarkdownWritingAssist({
   const [menuOpen, setMenuOpen] = React.useState(false);
   const [task, setTask] = React.useState<WritingTask | null>(null);
   const [running, setRunning] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const runIdRef = React.useRef(0);
+  const abortRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => {
     const update = () => {
@@ -157,10 +159,12 @@ export function MarkdownWritingAssist({
     setMenuOpen(open);
     if (open) return;
     setTask(null);
+    setError(null);
   }, [running]);
 
   const handleSelectTask = React.useCallback((nextTask: WritingTask) => {
     setTask(nextTask);
+    setError(null);
   }, []);
 
   const handleWrite = React.useCallback(async () => {
@@ -168,28 +172,63 @@ export function MarkdownWritingAssist({
     if (!editor || !task || !chip || running) return;
 
     const token = ++runIdRef.current;
-    setRunning(true);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-    const draft = buildTestDraft(task, chip.text);
+    setRunning(true);
+    setError(null);
+
+    const { prompt, system_prompt } = buildWritingAssistRequest(
+      task.id,
+      chip.text,
+    );
+    let output = "";
     let length = chip.length;
     const from = chip.from;
 
-    for (let index = 1; index <= draft.length; index += 1) {
-      if (runIdRef.current !== token) return;
-      length = replaceEditorRange(editor, from, length, draft.slice(0, index));
-      await wait(12);
-    }
+    try {
+      await streamExternalLlm({
+        prompt,
+        systemPrompt: system_prompt,
+        signal: controller.signal,
+        onEvent: (event) => {
+          if (runIdRef.current !== token) return;
+          if (event.type !== "token" || !event.text) return;
+          output += event.text;
+          length = replaceEditorRange(editor, from, length, output);
+        },
+      });
 
-    if (runIdRef.current !== token) return;
-    setRunning(false);
-    setMenuOpen(false);
-    setTask(null);
-    setChip(null);
+      if (runIdRef.current !== token) return;
+
+      const finalOutput = normalizeWritingAssistMarkdown(task.id, output);
+      if (!finalOutput.trim()) {
+        setError("پاسخی از مدل دریافت نشد.");
+        return;
+      }
+
+      replaceEditorRangeWithMarkdown(editor, from, length, finalOutput);
+
+      setMenuOpen(false);
+      setTask(null);
+      setChip(null);
+    } catch (err) {
+      if (runIdRef.current !== token) return;
+      if (controller.signal.aborted) return;
+      setError(getErrorDetail(err, "پاسخ مدل کامل نشد."));
+    } finally {
+      if (runIdRef.current === token) {
+        setRunning(false);
+        abortRef.current = null;
+      }
+    }
   }, [chip, getEditor, running, task]);
 
   React.useEffect(() => {
     return () => {
       runIdRef.current += 1;
+      abortRef.current?.abort();
     };
   }, []);
 
@@ -261,6 +300,11 @@ export function MarkdownWritingAssist({
         </div>
         {task ? (
           <div className="border-t border-border p-1">
+            {error ? (
+              <p className="px-2 pb-2 text-xs leading-relaxed text-destructive">
+                {error}
+              </p>
+            ) : null}
             <Button
               type="button"
               variant="default"

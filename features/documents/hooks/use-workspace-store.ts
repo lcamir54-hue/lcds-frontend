@@ -9,6 +9,8 @@ import {
   canWriteDocument,
   getAccessPrincipal,
 } from "@/features/documents/lib/access-control";
+import { getMarkdownBody } from "@/features/documents/lib/frontmatter";
+import { isTokenIncreaseBlocked } from "@/features/documents/lib/page-tokens";
 import { flattenKnowledgeTree } from "@/features/documents/lib/tree";
 import type {
   DocumentMeta,
@@ -207,8 +209,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
 
   setMarkdown(markdown, options) {
     const dirty = options?.dirty ?? true;
-    const { activeMeta } = get();
+    const { activeMeta, markdown: currentMarkdown } = get();
     if (activeMeta && !canWriteDocument(activeMeta, getAccessPrincipal())) {
+      return;
+    }
+    if (
+      activeMeta?.kind === "page" &&
+      isTokenIncreaseBlocked(
+        getMarkdownBody(currentMarkdown),
+        getMarkdownBody(markdown),
+      )
+    ) {
       return;
     }
     set({

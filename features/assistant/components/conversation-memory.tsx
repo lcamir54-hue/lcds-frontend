@@ -21,7 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAssistantStore } from "@/features/assistant/hooks/use-assistant-store";
 import type { Conversation } from "@/features/assistant/types";
 import { ASSISTANT_PATH } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, truncateDisplay } from "@/lib/utils";
 
 function startOfDay(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), value.getDate()).getTime();
@@ -150,8 +150,11 @@ export function ConversationMemory() {
                         href={`${ASSISTANT_PATH}/${conversation.id}`}
                         onClick={() => setMemoryOpen(false)}
                         className="min-w-0 flex-1 px-2 py-2"
+                        title={conversation.title}
                       >
-                        <p className="truncate text-sm">{conversation.title}</p>
+                        <p className="truncate text-sm">
+                          {truncateDisplay(conversation.title, 28)}
+                        </p>
                         <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">
                           {previewOf(conversation)}
                         </p>
@@ -160,7 +163,7 @@ export function ConversationMemory() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="mt-1 size-6 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                        className="mt-1 size-6 shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
                         aria-label={`حذف «${conversation.title}»`}
                         onClick={() => setPendingDelete(conversation)}
                       >

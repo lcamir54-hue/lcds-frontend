@@ -4,12 +4,18 @@ import "@milkdown/crepe/theme/common/style.css";
 import "@milkdown/crepe/theme/frame.css";
 
 import { Crepe } from "@milkdown/crepe";
+import { replaceAll } from "@milkdown/kit/utils";
 import { Milkdown, MilkdownProvider, useEditor } from "@milkdown/react";
 import * as React from "react";
 
 import { MarkdownVoiceControl } from "@/features/documents/components/markdown-voice-control";
 import { MarkdownWritingAssist } from "@/features/documents/components/markdown-writing-assist";
 import { getMarkdownBody } from "@/features/documents/lib/frontmatter";
+import {
+  isTokenIncreaseBlocked,
+  PAGE_TOKEN_LIMIT_MESSAGE,
+  validatePageContent,
+} from "@/features/documents/lib/page-tokens";
 
 type MilkdownEditorInnerProps = {
   documentId: string;
@@ -23,6 +29,9 @@ function MilkdownEditorInner({
   onChange,
 }: MilkdownEditorInnerProps) {
   const body = getMarkdownBody(markdown);
+  const [limitReached, setLimitReached] = React.useState(
+    () => !validatePageContent(body).allowed,
+  );
 
   const { loading, get } = useEditor(
     (root) => {
@@ -67,12 +76,28 @@ function MilkdownEditorInner({
 
       crepe.on((listener) => {
         let ready = false;
+        let reverting = false;
+
         listener.markdownUpdated((_ctx, nextMarkdown, prevMarkdown) => {
           if (!ready) {
             ready = true;
             return;
           }
+          if (reverting) {
+            reverting = false;
+            return;
+          }
           if (nextMarkdown === prevMarkdown) return;
+
+          if (isTokenIncreaseBlocked(prevMarkdown, nextMarkdown)) {
+            reverting = true;
+            crepe.editor.action(replaceAll(prevMarkdown));
+            setLimitReached(!validatePageContent(prevMarkdown).allowed);
+            return;
+          }
+
+          const validation = validatePageContent(nextMarkdown);
+          setLimitReached(!validation.allowed);
           onChange(nextMarkdown);
         });
       });
@@ -82,8 +107,20 @@ function MilkdownEditorInner({
     [documentId],
   );
 
+  React.useEffect(() => {
+    setLimitReached(!validatePageContent(getMarkdownBody(markdown)).allowed);
+  }, [markdown]);
+
   return (
     <div className="relative flex h-full min-h-0 flex-col">
+      {limitReached ? (
+        <div
+          role="alert"
+          className="border-b border-destructive/30 bg-destructive/10 px-3 py-2 text-sm leading-relaxed text-destructive md:px-5"
+        >
+          {PAGE_TOKEN_LIMIT_MESSAGE}
+        </div>
+      ) : null}
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="milkdown-host mx-auto w-full max-w-[1200px] px-6 py-8 pb-24 md:px-12 lg:px-16">
           {loading ? (
@@ -94,10 +131,16 @@ function MilkdownEditorInner({
           <Milkdown />
         </div>
       </div>
-      <MarkdownWritingAssist disabled={loading} getEditor={get} />
+      <MarkdownWritingAssist
+        disabled={loading || limitReached}
+        getEditor={get}
+      />
       <div className="pointer-events-none absolute inset-x-0 bottom-4 z-20 flex justify-center px-4">
         <div className="pointer-events-auto">
-          <MarkdownVoiceControl disabled={loading} getEditor={get} />
+          <MarkdownVoiceControl
+            disabled={loading || limitReached}
+            getEditor={get}
+          />
         </div>
       </div>
     </div>

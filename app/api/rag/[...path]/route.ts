@@ -3,7 +3,12 @@ import { RAG_API_BASE_URL } from "@/lib/api/config";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-const ALLOWED_PATHS = new Set(["search", "chat/local", "chat/external"]);
+const ALLOWED_PATHS = new Set([
+  "search",
+  "chat/local",
+  "chat/external",
+  "llm/external/stream",
+]);
 
 function ragUrl(path: string) {
   return `${RAG_API_BASE_URL.replace(/\/$/, "")}/api/v1/${path}`;

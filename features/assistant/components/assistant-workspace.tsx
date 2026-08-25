@@ -10,6 +10,7 @@ import { ChatMessageBubble } from "@/features/assistant/components/chat-message"
 import { ConversationMemory } from "@/features/assistant/components/conversation-memory";
 import { useAssistantStore } from "@/features/assistant/hooks/use-assistant-store";
 import { cancelSpeech, plainTextForSpeech, speakPersian } from "@/features/assistant/lib/speech";
+import { ASSISTANT_SUGGESTED_QUESTIONS } from "@/features/assistant/lib/suggested-questions";
 import { ASSISTANT_PATH } from "@/lib/constants";
 
 export function AssistantWorkspace({
@@ -90,7 +91,10 @@ export function AssistantWorkspace({
           <>
             <div className="min-h-0 flex-1 overflow-y-auto">
               {!conversation || conversation.messages.length === 0 ? (
-                <EmptyChat />
+                <EmptyChat
+                  disabled={sending}
+                  onSelectQuestion={handleSend}
+                />
               ) : (
                 <div className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-6 md:px-6">
                   {conversation.messages.map((message, index) => {
@@ -131,7 +135,13 @@ export function AssistantWorkspace({
   );
 }
 
-function EmptyChat() {
+function EmptyChat({
+  onSelectQuestion,
+  disabled = false,
+}: {
+  onSelectQuestion: (question: string) => void;
+  disabled?: boolean;
+}) {
   return (
     <div className="mx-auto flex min-h-full max-w-2xl flex-col items-center justify-center px-6 py-16 text-center">
       <span className="mb-4 flex size-12 items-center justify-center rounded-lg border border-border bg-interactive-selected text-interactive-foreground">
@@ -140,6 +150,23 @@ function EmptyChat() {
       <h1 className="text-xl font-semibold tracking-tight">
         دستیار دانش سازمانی
       </h1>
+      <p className="mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+        این دستیار برای پاسخ به سوالات پرسنل ساخته شده است
+      </p>
+      <div className="mt-8 flex w-full max-w-lg flex-col gap-2">
+        {ASSISTANT_SUGGESTED_QUESTIONS.map((question) => (
+          <Button
+            key={question}
+            type="button"
+            variant="outline"
+            className="h-auto whitespace-normal px-4 py-3 text-start leading-relaxed"
+            disabled={disabled}
+            onClick={() => onSelectQuestion(question)}
+          >
+            {question}
+          </Button>
+        ))}
+      </div>
     </div>
   );
 }

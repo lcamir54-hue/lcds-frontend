@@ -1,4 +1,5 @@
 import { type Editor, editorViewCtx } from "@milkdown/kit/core";
+import { replaceRange } from "@milkdown/kit/utils";
 
 export type DictationAnchor = {
   from: number;
@@ -43,5 +44,21 @@ export function replaceEditorRange(
     view.dispatch(view.state.tr.insertText(text, start, end).scrollIntoView());
     view.focus();
     return text.length;
+  });
+}
+
+export function replaceEditorRangeWithMarkdown(
+  editor: Editor,
+  from: number,
+  length: number,
+  markdown: string,
+) {
+  editor.action((ctx) => {
+    const view = ctx.get(editorViewCtx);
+    const size = view.state.doc.content.size;
+    const start = Math.max(0, Math.min(from, size));
+    const end = Math.max(start, Math.min(start + length, size));
+    replaceRange(markdown, { from: start, to: end })(ctx);
+    view.focus();
   });
 }

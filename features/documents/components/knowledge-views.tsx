@@ -10,9 +10,11 @@ import { DocumentOutline } from "@/features/documents/components/document-outlin
 import { DocumentToolbar } from "@/features/documents/components/document-toolbar";
 import { MarkdownEditor } from "@/features/documents/components/markdown-editor";
 import { MarkdownRenderer } from "@/features/documents/components/markdown-renderer";
+import { PageTokenLimitBanner } from "@/features/documents/components/page-token-meter";
 import { useAccessPrincipal } from "@/features/documents/hooks/use-access-principal";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
 import { canWriteDocument } from "@/features/documents/lib/access-control";
+import { getMarkdownBody } from "@/features/documents/lib/frontmatter";
 import { discardUnsavedChanges } from "@/features/documents/lib/unsaved-changes";
 
 const ProcessDesigner = dynamic(
@@ -73,6 +75,9 @@ export function PageWorkspace() {
     <div className="flex min-h-0 flex-1 overflow-hidden">
       <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden">
         <DocumentToolbar />
+        {!showEditor ? (
+          <PageTokenLimitBanner content={getMarkdownBody(markdown)} />
+        ) : null}
         <div className="relative min-h-0 flex-1 overflow-hidden">
           {showEditor ? (
             <MarkdownEditor

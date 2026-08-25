@@ -6,14 +6,17 @@ import * as React from "react";
 import { PublishStatusControl } from "@/components/shared/publish-status-control";
 import { SaveActionButton } from "@/components/shared/save-action-button";
 import { Button } from "@/components/ui/button";
+import { PageTokenMeter } from "@/features/documents/components/page-token-meter";
 import { useAccessPrincipal } from "@/features/documents/hooks/use-access-principal";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
 import { canWriteDocument } from "@/features/documents/lib/access-control";
+import { getMarkdownBody } from "@/features/documents/lib/frontmatter";
 import type { PublishStatus } from "@/features/documents/types";
 import { cn } from "@/lib/utils";
 
 export function DocumentToolbar() {
   const activeMeta = useWorkspaceStore((s) => s.activeMeta);
+  const markdown = useWorkspaceStore((s) => s.markdown);
   const viewMode = useWorkspaceStore((s) => s.viewMode);
   const isDirty = useWorkspaceStore((s) => s.isDirty);
   const isSaving = useWorkspaceStore((s) => s.isSaving);
@@ -28,6 +31,7 @@ export function DocumentToolbar() {
   const canWrite = activeMeta
     ? canWriteDocument(activeMeta, principal)
     : false;
+  const showTokenMeter = activeMeta?.kind === "page";
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -65,7 +69,10 @@ export function DocumentToolbar() {
         ) : null}
       </div>
 
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-2">
+        {showTokenMeter ? (
+          <PageTokenMeter content={getMarkdownBody(markdown)} />
+        ) : null}
         <PublishStatusControl
           value={status}
           disabled={!canWrite}

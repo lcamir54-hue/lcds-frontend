@@ -55,7 +55,7 @@ import { knowledgeItemHref } from "@/features/documents/lib/knowledge-routes";
 import type { DocumentKind, DocumentMeta } from "@/features/documents/types";
 import { PUBLISH_STATUS_LABELS } from "@/features/documents/types";
 import { APP_TITLE_FA, ASSISTANT_PATH } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, truncateDisplay } from "@/lib/utils";
 
 type TreeNode = DocumentMeta & { children: TreeNode[] };
 
@@ -180,7 +180,8 @@ function PageTreeItem({
         ) : (
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-center gap-1.5 truncate px-1 py-1.5 text-start text-sm"
+            className="flex min-w-0 flex-1 items-center gap-1.5 px-1 py-1.5 text-start text-sm"
+            title={node.title}
             onClick={() => {
               if (isTopic) {
                 toggleExpanded(node.id);
@@ -196,13 +197,17 @@ function PageTreeItem({
             {isTopic ? (
               <Folder className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
             ) : (
-              <span aria-hidden>{node.icon}</span>
+              <span className="shrink-0" aria-hidden>
+                {node.icon}
+              </span>
             )}
-            <span className="truncate">{node.title}</span>
+            <span className="min-w-0 flex-1 truncate">
+              {truncateDisplay(node.title, isTopic ? 22 : 18)}
+            </span>
             {!isTopic ? (
               <span
                 className={cn(
-                  "ms-auto shrink-0 rounded-sm px-1 py-0.5 text-[10px]",
+                  "shrink-0 rounded-sm px-1 py-0.5 text-[10px]",
                   node.status === "published"
                     ? "bg-success-muted text-success-muted-foreground"
                     : "bg-muted text-muted-foreground",
@@ -214,15 +219,15 @@ function PageTreeItem({
           </button>
         )}
 
-        <div className="flex opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+        <div className="flex shrink-0 items-center">
           {canAddChild ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-6"
-                  aria-label="افزودن زیرمجموعه"
+                  className="size-6 text-muted-foreground hover:text-foreground"
+                  aria-label="افزودن صفحه یا فرآیند"
                 >
                   <Plus className="size-3.5" aria-hidden />
                 </Button>
@@ -243,65 +248,67 @@ function PageTreeItem({
           ) : null}
 
           {canWrite ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-6"
-                aria-label="گزینه‌ها"
-              >
-                <MoreHorizontal className="size-3.5" aria-hidden />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem
-                onClick={() => {
-                  setTitle(node.title);
-                  setRenaming(true);
-                }}
-              >
-                <Pencil className="size-4" aria-hidden />
-                تغییر نام
-              </DropdownMenuItem>
-              {!isTopic ? (
-                <DropdownMenuItem
-                  onClick={() => {
-                    void (async () => {
-                      const newId = await duplicatePage(node.id);
-                      if (!newId || !node.parent) return;
-                      const href = knowledgeItemHref({
-                        id: newId,
-                        kind: node.kind,
-                        parent: node.parent,
-                      });
-                      if (href) requestLeave(href);
-                    })();
-                  }}
-                >
-                  <Copy className="size-4" aria-hidden />
-                  ایجاد رونوشت
-                </DropdownMenuItem>
-              ) : (
-                <DropdownMenuItem
-                  onClick={() => {
-                    void duplicatePage(node.id);
-                  }}
-                >
-                  <Copy className="size-4" aria-hidden />
-                  ایجاد رونوشت
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 className="size-4" aria-hidden />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <div className="flex opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-6"
+                    aria-label="گزینه‌ها"
+                  >
+                    <MoreHorizontal className="size-3.5" aria-hidden />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setTitle(node.title);
+                      setRenaming(true);
+                    }}
+                  >
+                    <Pencil className="size-4" aria-hidden />
+                    تغییر نام
+                  </DropdownMenuItem>
+                  {!isTopic ? (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        void (async () => {
+                          const newId = await duplicatePage(node.id);
+                          if (!newId || !node.parent) return;
+                          const href = knowledgeItemHref({
+                            id: newId,
+                            kind: node.kind,
+                            parent: node.parent,
+                          });
+                          if (href) requestLeave(href);
+                        })();
+                      }}
+                    >
+                      <Copy className="size-4" aria-hidden />
+                      ایجاد رونوشت
+                    </DropdownMenuItem>
+                  ) : (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        void duplicatePage(node.id);
+                      }}
+                    >
+                      <Copy className="size-4" aria-hidden />
+                      ایجاد رونوشت
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                    onClick={() => setConfirmDelete(true)}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                    حذف
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : null}
         </div>
       </div>

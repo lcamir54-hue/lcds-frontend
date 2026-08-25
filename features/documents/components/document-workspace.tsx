@@ -8,10 +8,12 @@ import { DocumentOutline } from "@/features/documents/components/document-outlin
 import { DocumentToolbar } from "@/features/documents/components/document-toolbar";
 import { MarkdownEditor } from "@/features/documents/components/markdown-editor";
 import { MarkdownRenderer } from "@/features/documents/components/markdown-renderer";
+import { PageTokenLimitBanner } from "@/features/documents/components/page-token-meter";
 import { PageTreeSidebar } from "@/features/documents/components/page-tree-sidebar";
 import { UnsavedNavigationProvider } from "@/features/documents/components/unsaved-navigation-provider";
 import { WorkspaceHeader } from "@/features/documents/components/workspace-header";
 import { useWorkspaceStore } from "@/features/documents/hooks/use-workspace-store";
+import { getMarkdownBody } from "@/features/documents/lib/frontmatter";
 
 export function DocumentWorkspace() {
   const bootstrap = useWorkspaceStore((s) => s.bootstrap);
@@ -52,6 +54,9 @@ export function DocumentWorkspace() {
           {activeMeta && activeId ? (
             <>
               <DocumentToolbar />
+              {viewMode !== "edit" && activeMeta.kind === "page" ? (
+                <PageTokenLimitBanner content={getMarkdownBody(markdown)} />
+              ) : null}
               <div className="relative min-h-0 flex-1 overflow-hidden">
                 {viewMode === "edit" ? (
                   <MarkdownEditor
